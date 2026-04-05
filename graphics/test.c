@@ -7,6 +7,8 @@
 #define WIDTH 1000
 #define HEIGHT 1000
 
+//gcc test.c -Iinclude -Llib -lglfw3 -lglew32 -lopengl32 -lgdi32 -o mandelbrot
+
 const char* vertex_shader_src =
 "#version 330 core\n"
 "layout (location = 0) in vec2 pos;\n"
@@ -21,6 +23,7 @@ const char* fragment_shader_src =
 "in vec2 fragPos;\n"
 "out vec4 color;\n"
 "#define PI 3.14159265359\n"
+"#define ANTIALIASCONST 3000\n"
 "uniform float coordX; uniform float coordY; uniform float scroll;\n"
 "vec2 product(vec2 a, vec2 b) {\n"
 "    return vec2(a.x * b.x - a.y * b.y, a.y * b.x + a.x * b.y);\n"
@@ -48,22 +51,29 @@ const char* fragment_shader_src =
 "}\n"
 "void main(){\n"
 "   vec2 zoomCentre = vec2(coordX,coordY);\n"
+"   color = vec4(0.0,0.0,0.0,0.0);"
+"   for(int x=-1;x<=1;x+=2) {\n"
+"   for(int y=-1;y<=1;y+=2) {\n"
 "   vec2 z0 = fragPos/scroll + zoomCentre;\n"
-"   int i=0; int maxloop = 1000; vec2 z=z0;\n"
-"   while(dot(z,z)<=1000 && i<=maxloop) {\n"
-"      z=pow(inv(z),2)+z0;\n"
+"   z0 = z0 + vec2(x,y)/(scroll*ANTIALIASCONST);\n"
+"   int i=0; int maxloop = 200; int r2 = 200; vec2 z=z0;\n"
+"   while(dot(z,z)<=r2 && i<=maxloop) {\n"
+"      z=cpow(z,z)+z0;\n"
 "      i++;\n"
 "   }\n"
 "   float smoothp=0.0;\n"
+"   float pow=2;\n"
 "   if(i<maxloop) {\n"
-"       float loglen = 0.5*log(max(dot(z,z),1e-10));\n"
-"       float nu = log(loglen/log(2.0)) / log(2.0);\n"
-"       smoothp = (float(i)+1-nu)/float(maxloop);\n"
-"       vec3 col = 0.5 + 0.5*cos(6.28318*(vec3(0.0,0.33,0.67) + smoothp));\n"
-"       color=vec4(col,1.0);\n"
+"       float nu = log(log(float(i)*log2(0.5*log(dot(z,z)))/log(pow)));\n"
+"       nu = nu/log(log(float(maxloop)*log(0.5*log(r2))/log(pow))); // one more log for both to colour zpowz \n"
+"       vec3 colorconst = 0.5+0.5*cos(2*PI*(nu*vec3(1.5,1.5,1.5)+vec3(0.1,0.2,0.3)));\n"
+"       color += vec4(colorconst,1.0);\n"
 "   } else {\n"
-"       color = vec4(0.0,0.0,0.0,1.0);\n"
+"       color += vec4(0.0,0.0,0.0,1.0);\n"
 "   }\n"  
+"   }\n"
+"   }\n"
+"   color=color/4;\n"
 "}";
 
 double scroll=1;float coordX=0;float coordY=0;
