@@ -25,13 +25,13 @@ const char* fragment_shader_src =
 "#define PI 3.14159265359\n"
 "#define ANTIALIASCONST 3000\n"
 "uniform float coordX; uniform float coordY; uniform float scroll;\n"
-"vec2 product(vec2 a, vec2 b) {\n"
+"vec2 cmul(vec2 a, vec2 b) {\n"
 "    return vec2(a.x * b.x - a.y * b.y, a.y * b.x + a.x * b.y);\n"
 "}\n"
 "vec2 pow(vec2 a,int n) {\n"
 "   vec2 r = a;\n"
 "   for(int i=0;i<n-1;i++) {\n"
-"       r=product(r,a);\n"
+"       r=cmul(r,a);\n"
 "   }\n"
 "   return r;\n"
 "}\n"
@@ -42,12 +42,21 @@ const char* fragment_shader_src =
 "vec2 cln(vec2 a) {\n"
 "    return vec2(0.5*log(dot(a,a)), atan(a.y, a.x));\n"
 "}\n"
+"vec2 cexp(vec2 a) {\n"
+"   float s = exp(a.x);"
+"   return vec2(s*cos(a.y),s*sin(a.y));"
+"}\n"
 "vec2 cpow(vec2 a, vec2 b) {\n"
 "   if (length(a) == 0.0) return vec2(0.0);\n" 
 "   vec2 logA = cln(a);\n"
-"   vec2 bLogA = product(b, logA);\n"
-"   float r = exp(bLogA.x);\n"
-"   return vec2(r * cos(bLogA.y), r * sin(bLogA.y));\n"
+"   vec2 blogA = cmul(b, logA);\n"
+"   return cexp(blogA);\n"
+"}\n"
+"vec2 ccos(vec2 a) {\n"
+"   return vec2(cos(a.x)*cosh(a.y),-sin(a.x)*sinh(a.y));\n"
+"}\n"
+"vec2 csin(vec2 a) {\n"
+"   return vec2(sin(a.x)*cosh(a.y),cos(a.x)*sinh(a.y));\n"
 "}\n"
 "void main(){\n"
 "   vec2 zoomCentre = vec2(coordX,coordY);\n"
@@ -77,17 +86,16 @@ const char* fragment_shader_src =
 "}";
 
 double scroll=1;float coordX=0;float coordY=0;
-double scrollsensitivity1 =0.1;
-double scrollsensitivity2=1;
+double scrollsensitivity =0.1;
 float movesensitivity=0.06;
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     if(abs(scroll)<0.0001) {
-        scroll+=scrollsensitivity1*yoffset;
+        scroll+=scrollsensitivity*yoffset;
         return;
     }
-    scroll+= scrollsensitivity1*abs(scrollsensitivity2*scroll)*yoffset;
+    scroll+= scrollsensitivity*abs(scroll)*yoffset;
 }
 
 void key_callback(GLFWwindow* window,int key, int scancode, int action, int mods) {
